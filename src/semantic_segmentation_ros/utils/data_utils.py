@@ -5,6 +5,55 @@ import numpy as np
 import torch
 
 
+
+def get_labelme_edge_mask_multi(mask_path: str,
+                                labels: list,
+                                line_thickness: int = 2,##4が標準
+                                dilate_iters: int = 0) -> torch.Tensor:
+    """
+    Labelme JSONから指定ラベルのエッジマスクを (num_classes, H, W) FloatTensor で返す
+    """
+    with open(mask_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    H, W = data["imageHeight"], data["imageWidth"]
+    channels = []
+
+    for label in labels:
+        mask = np.zeros((H, W), dtype=np.uint8)
+        for shp in data.get("shapes", []):
+            if shp.get("label", "") != label:
+                continue
+
+            pts = np.array(shp.get("points", []), dtype=np.int32)
+            if pts.ndim != 2 or pts.shape[0] < 2:
+                continue
+
+            stype = (shp.get("shape_type") or "polyline").lower()
+            if stype in ["polyline", "linestrip", "line_strip"]:
+                cv2.polylines(mask, [pts], isClosed=False, color=1,
+                                thickness=line_thickness, lineType=cv2.LINE_8)  #LINE_AAをやめる　アンチエイリアスを切った
+
+            elif stype == "line":
+                p1, p2 = tuple(pts[0]), tuple(pts[1])
+                cv2.line(mask, p1, p2, color=1,
+                         thickness=line_thickness, lineType=cv2.LINE_8)
+            elif stype == "polygon":
+                cv2.fillPoly(mask, [pts], 1)
+            else:
+                cv2.polylines(mask, [pts], isClosed=False, color=1,
+                            thickness=line_thickness, lineType=cv2.LINE_8)  # LINE_AAをやめる
+
+
+        if dilate_iters > 0:
+            k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3,3))
+            mask = cv2.dilate(mask, k, iterations=dilate_iters)
+
+        channels.append(mask.astype(np.float32))
+
+    return torch.tensor(np.stack(channels, axis=0), dtype=torch.float32)
+
+
 def get_rgb_img_tensor(img_path: str) -> torch.tensor:
     """
     Read an image from the given path and convert it from BGR to RGB format.
@@ -80,3 +129,13 @@ def get_labelme_mask_tensor(mask_path: str, labels: list) -> torch.tensor:
 
 def get_coco_mask():
     pass
+
+def add_background(mask: torch.Tensor) -> torch.Tensor:
+    """
+    Adds a background channel to the mask tensor.
+
+    Inputs: mask (torch.Tensor) - The original mask tensor without the background channel.
+    Outputs: torch.Tensor - Updated mask tensor with the background channel added.
+    """
+    background = torch.all(mask == 0, dim=0, keepdim=True)
+    return torch.cat((mask, background), dim=0)

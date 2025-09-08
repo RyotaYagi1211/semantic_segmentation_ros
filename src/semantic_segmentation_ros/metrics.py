@@ -42,3 +42,18 @@ def calc_iou(y_pred, y, num_classes, device):
         ious[cls] = torch.nanmean(iou)
 
     return torch.nanmean(ious)
+
+# def calc_iou(y_pred, y, num_classes, device):
+#     # y_pred: (N, C, H, W) → (N, H, W)
+#     if y_pred.dim() == 4:
+#         y_pred = torch.argmax(y_pred, dim=1)
+
+#     ious = []
+#     for cls in range(num_classes):
+#         true_positive = ((y_pred == cls) & (y == cls)).float().sum(dim=[1, 2])
+#         false_positive = ((y_pred == cls) & (y != cls)).float().sum(dim=[1, 2])
+#         false_negative = ((y_pred != cls) & (y == cls)).float().sum(dim=[1, 2])
+#         denominator = true_positive + false_positive + false_negative
+#         iou = (true_positive / denominator.clamp(min=1e-6)).mean()
+#         ious.append(iou.item())
+#     return torch.tensor(ious, device=device)

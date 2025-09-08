@@ -25,7 +25,7 @@ def get_model(model_name: str, encoder_name: str, encoder_weights: str, in_chann
     return model(encoder_name=encoder_name, encoder_weights=encoder_weights, in_channels=in_channels, classes=classes)
 
 
-def load_model(model_name: str, encoder_name: str, encoder_weights: str, in_channels: int, classes: int, path: str, device: str) -> torch.nn.Module:
+def load_model(model_name: str, encoder_name: str, encoder_weights: str, in_channels: int, classes: int, path: str, device: str = "cuda") -> torch.nn.Module:
     """
     Load a model from a specified path and move it to a given device.
 

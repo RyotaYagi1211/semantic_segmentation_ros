@@ -3,22 +3,23 @@ import torch
 from torch.utils.data import Dataset
 import torchvision.transforms.v2 as transforms
 from torchvision import tv_tensors
+import torch.nn.functional as F
+import json
+import cv2
+from semantic_segmentation_ros.utils.data_utils import add_background
+
 
 from semantic_segmentation_ros.utils.data_utils import get_rgb_img_tensor, get_labelme_mask_tensor
 from semantic_segmentation_ros.utils.vis_utils import vis_img_mask
+from semantic_segmentation_ros.utils.data_utils import get_rgb_img_tensor, get_labelme_edge_mask_multi
+
+
 
 class SegDataset(Dataset):
-    """A dataset class for semantic segmentation which handles data loading, augmentations, and preprocessing.
-
-    Inputs:
-        path (str) - Base path to the dataset.
-        labels (dict) - Class labels.
-        augmentations (dict) - Dictionary specifying augmentation parameters.
-        is_train (bool) - Specifies if the dataset is for training. Defaults to True.
-    """
+    
 
     def __init__(self, path: str, labels: list, augmentations: dict, is_train: bool = True):
-        self.labels = labels
+        self.labels = labels  # 例: ["edge"]
         self.img_path = os.path.join(path, "img")
         self.ann_path = os.path.join(path, "ann")
         self.imgs = list(sorted(os.listdir(self.img_path)))
@@ -30,30 +31,62 @@ class SegDataset(Dataset):
         self.is_train = is_train
 
     def __len__(self) -> int:
-        """Returns the number of images in the dataset."""
+
         return len(self.imgs)
 
-    def __getitem__(self, idx: int) -> tuple:
-        """
-        Fetches the image and mask tensors by index.
+    def __getitem__(self, idx: int):##読み込みは出来てる
+        # ####これはエッジ用
+        # # #print(f"Loading index {idx}")
+        # img_path = os.path.join(self.img_path, self.imgs[idx])
+        # mask_path = os.path.join(self.ann_path, self.anns[idx])
+        # #print(f"  img={img_path}, mask={mask_path}")
 
-        Inputs: idx (int) - The index of the data item.
-        Outputs: tuple - Tuple containing the image (Tensor) and mask (Tensor).
-        """
+        # img = get_rgb_img_tensor(img_path)                        # (3,H,W) float
+        # mask = get_labelme_edge_mask_multi(mask_path,
+        #                            labels=["edge","edge2"],
+        #                            line_thickness=2, dilate_iters=0)
+
+
+
+
+
+        
+        ####これは識別用
         img_path = os.path.join(self.img_path, self.imgs[idx])
         mask_path = os.path.join(self.ann_path, self.anns[idx])
 
         img = get_rgb_img_tensor(img_path)
         mask = get_labelme_mask_tensor(mask_path, self.labels)
 
+
+
+
+
+
+
+
+
+
+
+        #print(f"  shapes: img={img.shape}, mask={mask.shape}")
+        # 変換（v2 Transformsは tv_tensors.Image / Mask を推奨）
+        
+        
+    #padあり
+        #16の倍数でないときは必要
+        # img = F.pad(img, (0, 0, 0, 8))       # 下方向に8ピクセルpadding
+        # mask = F.pad(mask, (0, 0, 0, 8))     # 同じくマスクもpadding
+
+
         if self.is_train and self.augment:
             img, mask = self.trans(tv_tensors.Image(img), tv_tensors.Mask(mask))
+        mask = add_background(mask)  # (C,H,W) LongTensor, C=クラス数+1
+        #vis_img_mask(img, mask)  # デバッグ用
+        return img, mask  
 
-        mask = add_background(mask)
-        # vis_img_mask(img, mask)
-        return img, mask
 
-def build_transform(augmentations: dict) -> transforms.Compose:
+
+def build_transform(augmentations: dict) -> transforms.Compose:#ここで拡張
     """
     Builds a composed torchvision transformation based on augmentation settings.
 

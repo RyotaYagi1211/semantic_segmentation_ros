@@ -5,14 +5,14 @@
 
     "dataset": {
         "path": "assets/data",
-        "labels": ["circle", "triangle", "square", "star"],
+        "labels": ["outer"],
         "augmentations": {
             "enable" : true,
             "affine" : {
                 "enable" : true,
                 "rotate" : [-180, 180],
                 "translate" : [0.2, 0.2],
-                "scale" : [0.5, 1.5],
+                "scale" : [0.8, 1.5],
                 "shear" : [0.8, 1.2],
                 "fill" : 255
             },
@@ -34,16 +34,16 @@
         "encoder_name": "resnet50",
         "encoder_weights": "imagenet",
         "in_channels": 3,
-        "classes": 5
+        "classes": 2 
     },
 
     "train": {
-        "lr": 0.00001,
+        "lr": 0.0001,
         "epochs": 1500
     },
 
     "dataloader": {
-        "batch_size": 20,
+        "batch_size": 2,
         "num_workers": 8,
         "pin_memory": true
     }

@@ -36,9 +36,9 @@ class Visualizer:
         """
         Create a ROS publisher for the segmented images.
         """
-        self.segmentation_image_pub = rospy.Publisher("segmentation_image", Image, queue_size=1)
-
-    def publish_segmented_image(self, mask_pred: np.ndarray) -> None:
+        self.segmentation_image1_pub = rospy.Publisher("segmentation_image1", Image, queue_size=1)
+        self.segmentation_image2_pub = rospy.Publisher("segmentation_image2", Image, queue_size=1)
+    def publish_segmented_image1(self, mask_pred: np.ndarray) -> None:
         """
         Publish the segmented image to a ROS topic.
 
@@ -47,4 +47,14 @@ class Visualizer:
         """
         seg_img = self.colors[mask_pred]
         msg = self.cv_bridge.cv2_to_imgmsg(seg_img, "rgb8")
-        self.segmentation_image_pub.publish(msg)
+        self.segmentation_image1_pub.publish(msg)
+    def publish_segmented_image2(self, mask_pred: np.ndarray) -> None:
+        """
+        Publish the segmented image to a ROS topic.
+
+        Input:
+            mask_pred (np.ndarray): A 2D numpy array where each element is the class index for that pixel.
+        """
+        seg_img = self.colors[mask_pred]
+        msg = self.cv_bridge.cv2_to_imgmsg(seg_img, "rgb8")
+        self.segmentation_image2_pub.publish(msg)
