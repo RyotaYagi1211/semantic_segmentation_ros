@@ -73,6 +73,7 @@ class SemanticSegmentationServer:
         """
         self.segmentation_mask_pub1 = rospy.Publisher("segmentation_mask1", Image, queue_size=1)
         self.segmentation_mask_pub2 = rospy.Publisher("segmentation_mask2", Image, queue_size=1)
+        #self.combined_segmentation_mask_pub = rospy.Publisher("combined_segmentation_mask", Image, queue_size=1)
         rospy.Subscriber(self.color_topic, Image, self.rgb_image_callback)
 
     def init_services(self) -> None:
@@ -100,6 +101,12 @@ class SemanticSegmentationServer:
             self.segmentation_mask_pub1.publish(self.latest_mask_pred1)
             self.latest_mask_pred2 = self.cv_bridge.cv2_to_imgmsg(mask_pred2.astype(np.uint8), "mono8")
             self.segmentation_mask_pub2.publish(self.latest_mask_pred2)
+            ###ここで２つのマスクを統合させて一つのマスクにする処理を入れる
+            #H*W*２
+            combined_mask = np.stack((mask_pred1, mask_pred2), axis=-1)
+            ##u,v,0がmask1、u,v,1がmask2
+            self.latest_combined_mask = self.cv_bridge.cv2_to_imgmsg(combined_mask.astype(np.uint8), "8UC2")###これで２チャンネルとなる
+            #self.combined_segmentation_mask_pub.publish(self.latest_combined_mask)
             # publish image
             self.vis.publish_segmented_image1(mask_pred1)
             self.vis.publish_segmented_image2(mask_pred2)
